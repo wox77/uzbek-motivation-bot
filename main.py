@@ -17,6 +17,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from extended_content import get_random_hazil, get_random_iqtibos, get_random_sheriy
 from local_quotes import generate_quote
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
@@ -70,6 +71,12 @@ LOCAL_MOOD_KEYS = {
     "sevgi": "sevgi",
 }
 
+CONTENT_OPTIONS = {
+    "iqtibos": ("📜", get_random_iqtibos),
+    "hazil": ("😂", get_random_hazil),
+    "sheriy": ("💔", get_random_sheriy),
+}
+
 
 class UserStore:
     """Small atomic JSON store for subscribers and their latest mood."""
@@ -118,21 +125,30 @@ class UserStore:
         return [user for user in self.users.values() if user.get("active", True)]
 
 
-def mood_keyboard() -> InlineKeyboardMarkup:
+def main_keyboard() -> InlineKeyboardMarkup:
+    content_buttons = [
+        InlineKeyboardButton(emoji + " " + label, callback_data=f"content:{key}")
+        for key, (emoji, label, _) in [
+            ("iqtibos", ("📜", "Iqtibos", get_random_iqtibos)),
+            ("hazil", ("😂", "Kundalik hazil", get_random_hazil)),
+            ("sheriy", ("💔", "She'riy satr", get_random_sheriy)),
+        ]
+    ]
     buttons = [
         InlineKeyboardButton(label, callback_data=f"mood:{key}")
         for key, label in MOODS.items()
     ]
     return InlineKeyboardMarkup(
-        [buttons[index : index + 2] for index in range(0, len(buttons), 2)]
+        [content_buttons]
+        + [buttons[index : index + 2] for index in range(0, len(buttons), 2)]
     )
 
 
 def menu_text() -> str:
     return (
         "Bugun qalbingizga qaysi mavzuda dalda kerak?\n\n"
-        "Holatingizni tanlang — siz uchun o‘zbek tilida maxsus motivatsion xabar "
-        "tayyorlayman."
+        "Kayfiyatingizni tanlang yoki quyidagilardan birini oling:\n"
+        "📜 Iqtibos · 😂 Kundalik hazil · 💔 She'riy satr"
     )
 
 
@@ -152,7 +168,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         active=True,
         last_seen=now_iso(),
     )
-    await update.effective_message.reply_text(menu_text(), reply_markup=mood_keyboard())
+    await update.effective_message.reply_text(menu_text(), reply_markup=main_keyboard())
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -167,7 +183,36 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_message:
-        await update.effective_message.reply_text(menu_text(), reply_markup=mood_keyboard())
+        await update.effective_message.reply_text(menu_text(), reply_markup=main_keyboard())
+
+
+async def content_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not update.effective_chat:
+        return
+    await query.answer()
+    content_key = query.data.removeprefix("content:")
+    option = CONTENT_OPTIONS.get(content_key)
+    if not option:
+        await query.edit_message_text("Bu kontent topilmadi. /start orqali qayta urinib ko‘ring.")
+        return
+
+    store: UserStore = context.application.bot_data["store"]
+    store.upsert(update.effective_chat.id, active=True, last_seen=now_iso())
+    emoji, generator = option
+    try:
+        await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+        await query.edit_message_text(
+            f"{emoji} {generator()}",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Bosh menyu", callback_data="menu")]]
+            ),
+        )
+    except Exception:
+        logger.exception("Could not generate local content for chat %s", update.effective_chat.id)
+        await query.edit_message_text(
+            "Kontentni tayyorlashda muammo yuz berdi. Iltimos, yana urinib ko‘ring."
+        )
 
 
 async def mood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -202,16 +247,27 @@ async def mood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def daily_broadcast(application: Application) -> None:
     store: UserStore = application.bot_data["store"]
     users = store.active_users()
+    used_messages: set[str] = set()
     logger.info("Starting daily broadcast to %d users", len(users))
     for user in users:
         chat_id = int(user["chat_id"])
-        mood_key = user.get("last_mood") or random.choice(list(MOODS))
-        mood = MOODS[mood_key]
+        previous_type = user.get("last_content_type")
+        content_types = [key for key in CONTENT_OPTIONS if key != previous_type]
         try:
-            message = generate_quote(LOCAL_MOOD_KEYS[mood_key])
+            message = ""
+            content_key = content_types[0]
+            emoji = CONTENT_OPTIONS[content_key][0]
+            for _ in range(6):
+                content_key = random.choice(content_types)
+                emoji, generator = CONTENT_OPTIONS[content_key]
+                message = generator()
+                if message not in used_messages:
+                    break
+            used_messages.add(message)
+            store.upsert(chat_id, last_content_type=content_key, last_daily_date=now_iso()[:10])
             await application.bot.send_message(
                 chat_id=chat_id,
-                text=f"Assalomu alaykum! Bugungi ilhom:\n\n{message}",
+                text=f"Assalomu alaykum! Bugungi ilhom:\n\n{emoji} {message}",
             )
         except Forbidden:
             logger.info("Chat %s blocked the bot; deactivating", chat_id)
@@ -248,6 +304,15 @@ def build_application() -> Application:
 
     async def post_init(_: Application) -> None:
         scheduler.start()
+        try:
+            await application.bot.set_my_description(
+                "Har kuni ertalab noyob kontent - iqtibos, hazil yoki she'riy satrlar"
+            )
+            await application.bot.set_my_short_description(
+                "Har kuni ertalab noyob kontent - iqtibos, hazil yoki she'riy satrlar"
+            )
+        except TelegramError:
+            logger.exception("Could not update bot profile description")
         logger.info("Bot ready; daily messages scheduled for 07:00 %s", TIMEZONE)
 
     async def post_shutdown(_: Application) -> None:
@@ -260,6 +325,7 @@ def build_application() -> Application:
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(CommandHandler("mood", show_menu))
     application.add_handler(CallbackQueryHandler(mood_selected, pattern=r"^mood:"))
+    application.add_handler(CallbackQueryHandler(content_selected, pattern=r"^content:"))
     application.add_handler(CallbackQueryHandler(show_menu, pattern=r"^menu$"))
     application.add_error_handler(on_error)
     return application

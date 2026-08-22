@@ -2,7 +2,8 @@
 
 Telegram bot that sends original daily motivational messages in Uzbek. Users
 choose one of 12 moods from an inline keyboard, and the offline local quote
-generator creates a fresh combination for that mood. Active users receive a
+generator creates a fresh combination for that mood. The menu also includes
+famous quotes, daily humor, and poetic lines. Active users receive a random
 daily message at 07:00 in the `Asia/Tashkent` timezone by default.
 
 ## Run
@@ -29,6 +30,9 @@ Optional environment variables:
 - `/start` subscribes the user and displays the mood keyboard.
 - `/mood` displays the mood keyboard again.
 - `/stop` pauses daily broadcasts for the user.
+
+The daily broadcast rotates between quotes, humor, and poetic lines and avoids
+repeating the same content for users within one broadcast when possible.
 
 User records are written atomically to `data/users.json`. If a user blocks the
 bot or their chat becomes unavailable, that user is automatically deactivated.

@@ -1,6 +1,6 @@
 # Uzbek Motivation Telegram Bot
 
-Telegram bot that generates Uzbek motivational messages for selected moods and broadcasts a daily message to active users.
+Telegram bot that provides Uzbek motivational messages, quotes, daily humor, and poetic lines, with a random daily broadcast to active users.
 
 ## Run & Operate
 
@@ -26,6 +26,7 @@ Telegram bot that generates Uzbek motivational messages for selected moods and b
 
 - `main.py` — Telegram handlers, local quote generation, scheduler, and JSON storage
 - `local_quotes.py` — offline Uzbek quote combinations for every mood
+- `extended_content.py` — offline quote, humor, and poetic-line content bank
 - `data/users.json` — runtime user records (created automatically and ignored by git)
 - `README.md` — setup and command reference
 
@@ -39,6 +40,7 @@ Telegram bot that generates Uzbek motivational messages for selected moods and b
 ## Product
 
 Users select one of 12 mood categories and receive a short, practical motivational message in Uzbek. Active subscribers receive a fresh daily message at 07:00.
+The bot profile describes its daily unique quote, humor, or poetic-line content.
 
 ## User preferences
 
