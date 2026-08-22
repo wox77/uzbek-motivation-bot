@@ -1,1 +1,2 @@
 - [Telegram bot logging](telegram-bot-logging.md) — keep transport logs quiet so Bot API URLs cannot expose the token.
+- [Anthropic credit fallback](anthropic-credit-fallback.md) — preserve the bot flow with local Uzbek content when API credits are exhausted.

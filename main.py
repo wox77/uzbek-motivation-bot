@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from anthropic import AsyncAnthropic
+from anthropic import AsyncAnthropic, BadRequestError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
@@ -128,6 +128,35 @@ class MotivationService:
     def __init__(self) -> None:
         self.client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
+    @staticmethod
+    def fallback_message(mood: str) -> str:
+        """Keep the bot useful when the external model is temporarily unavailable."""
+        messages = [
+            (
+                f"{mood} — bu sizning butun hikoyangiz emas. Hozir o‘zingizdan "
+                "hammasini birdaniga hal qilishni talab qilmang; faqat keyingi "
+                "kichik qadamni tanlang.\n\n"
+                "Bir necha marta sekin nafas oling, bugun bajara oladigan bitta "
+                "oddiy ishni yozing va uni boshlang. Kichik harakat ham oldinga "
+                "qarab harakatdir."
+            ),
+            (
+                f"{mood} paytida ham ichingizda kuch bor. Uni isbotlash uchun "
+                "katta natija shart emas — bugun o‘zingizga mehr bilan munosabatda "
+                "bo‘lishning o‘zi muhim qadamdir.\n\n"
+                "Telefonni bir necha daqiqaga chetga qo‘ying, suv iching va "
+                "o‘zingizga: “Men buni asta-sekin uddalayman”, deb ayting."
+            ),
+            (
+                f"{mood} sizni to‘xtatib qo‘yishi mumkin, ammo yo‘lingizni "
+                "belgilamaydi. Hozirgi holatingizni tan oling, lekin unga abadiy "
+                "hukm sifatida qaramang.\n\n"
+                "Bugun faqat bitta foydali tanlov qiling: dam olish, suhbatlashish "
+                "yoki kichik vazifani tugatish. Sizning qadamingiz ahamiyatli."
+            ),
+        ]
+        return random.choice(messages)
+
     async def generate(self, mood: str, recipient_hint: str = "") -> str:
         prompt = f"""
 Siz o‘zbek tilida yozadigan mehribon va ilhomlantiruvchi motivatsion murabbiy
@@ -143,11 +172,19 @@ Talablar:
 - Emoji va hashtaglardan foydalanmang.
 - Tibbiy tashxis yoki professional yordam o‘rniga maslahat bermang.
 """
-        response = await self.client.messages.create(
-            model=MODEL,
-            max_tokens=8192,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        try:
+            response = await self.client.messages.create(
+                model=MODEL,
+                max_tokens=8192,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except BadRequestError as error:
+            if "credit balance is too low" in str(error).lower():
+                logger.warning(
+                    "Anthropic credit balance is too low; using Uzbek fallback message"
+                )
+                return self.fallback_message(mood)
+            raise
         text_parts = [
             block.text for block in response.content if getattr(block, "type", "") == "text"
         ]
