@@ -1,8 +1,7 @@
 """Daily Uzbek motivation Telegram bot.
 
-Required secrets:
+Required secret:
     TELEGRAM_BOT_TOKEN  - token from @BotFather
-    ANTHROPIC_API_KEY   - Anthropic API key
 """
 
 from __future__ import annotations
@@ -17,8 +16,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from anthropic import AsyncAnthropic, BadRequestError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from local_quotes import generate_quote
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
 from telegram.error import BadRequest, Forbidden, TelegramError
@@ -41,8 +40,6 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 
 TIMEZONE = ZoneInfo(os.getenv("BOT_TIMEZONE", "Asia/Tashkent"))
 DATA_FILE = Path(os.getenv("USERS_FILE", "data/users.json"))
-MODEL = "claude-sonnet-4-6"
-
 MOODS: dict[str, str] = {
     "umidsizlik": "umidsizlik",
     "tanhalilik": "tanhalilik",
@@ -54,6 +51,21 @@ MOODS: dict[str, str] = {
     "stres": "stres",
     "murakkab": "oʻziga nisbatan murakkab",
     "gazab": "gʻazab",
+    "kelajak": "kelajak",
+    "sevgi": "sevgi",
+}
+
+LOCAL_MOOD_KEYS = {
+    "umidsizlik": "umidsizlik",
+    "tanhalilik": "tanhalilik",
+    "xavfxona": "xavfxona",
+    "charchalik": "charchalik",
+    "ayblanish": "ayblanish",
+    "xushyaliq": "xushyaliq",
+    "muvaffaqiyat": "g_muofaqqiyat",
+    "stres": "diastres",
+    "murakkab": "o_murakkab",
+    "gazab": "dusishlash",
     "kelajak": "kelajak",
     "sevgi": "sevgi",
 }
@@ -124,76 +136,6 @@ def menu_text() -> str:
     )
 
 
-class MotivationService:
-    def __init__(self) -> None:
-        self.client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
-    @staticmethod
-    def fallback_message(mood: str) -> str:
-        """Keep the bot useful when the external model is temporarily unavailable."""
-        messages = [
-            (
-                f"{mood} — bu sizning butun hikoyangiz emas. Hozir o‘zingizdan "
-                "hammasini birdaniga hal qilishni talab qilmang; faqat keyingi "
-                "kichik qadamni tanlang.\n\n"
-                "Bir necha marta sekin nafas oling, bugun bajara oladigan bitta "
-                "oddiy ishni yozing va uni boshlang. Kichik harakat ham oldinga "
-                "qarab harakatdir."
-            ),
-            (
-                f"{mood} paytida ham ichingizda kuch bor. Uni isbotlash uchun "
-                "katta natija shart emas — bugun o‘zingizga mehr bilan munosabatda "
-                "bo‘lishning o‘zi muhim qadamdir.\n\n"
-                "Telefonni bir necha daqiqaga chetga qo‘ying, suv iching va "
-                "o‘zingizga: “Men buni asta-sekin uddalayman”, deb ayting."
-            ),
-            (
-                f"{mood} sizni to‘xtatib qo‘yishi mumkin, ammo yo‘lingizni "
-                "belgilamaydi. Hozirgi holatingizni tan oling, lekin unga abadiy "
-                "hukm sifatida qaramang.\n\n"
-                "Bugun faqat bitta foydali tanlov qiling: dam olish, suhbatlashish "
-                "yoki kichik vazifani tugatish. Sizning qadamingiz ahamiyatli."
-            ),
-        ]
-        return random.choice(messages)
-
-    async def generate(self, mood: str, recipient_hint: str = "") -> str:
-        prompt = f"""
-Siz o‘zbek tilida yozadigan mehribon va ilhomlantiruvchi motivatsion murabbiy
-bo‘ling. Foydalanuvchining hozirgi holati: “{mood}”.
-{recipient_hint}
-Shu holatga mos, samimiy va noyob motivatsion xabar yozing.
-Talablar:
-- Faqat o‘zbek tilida yozing.
-- 2–4 qisqa paragraf bo‘lsin, jami 80–140 so‘zdan oshmasin.
-- Birinchi gap e’tiborli va iliq bo‘lsin.
-- Amaliy, kichik bir qadam yoki fikrlash mashqini taklif qiling.
-- Haddan tashqari balandparvoz, hukm qiluvchi yoki takroriy iboralardan qoching.
-- Emoji va hashtaglardan foydalanmang.
-- Tibbiy tashxis yoki professional yordam o‘rniga maslahat bermang.
-"""
-        try:
-            response = await self.client.messages.create(
-                model=MODEL,
-                max_tokens=8192,
-                messages=[{"role": "user", "content": prompt}],
-            )
-        except BadRequestError as error:
-            if "credit balance is too low" in str(error).lower():
-                logger.warning(
-                    "Anthropic credit balance is too low; using Uzbek fallback message"
-                )
-                return self.fallback_message(mood)
-            raise
-        text_parts = [
-            block.text for block in response.content if getattr(block, "type", "") == "text"
-        ]
-        message = "\n".join(text_parts).strip()
-        if not message:
-            raise RuntimeError("Anthropic returned an empty message")
-        return message
-
-
 def now_iso() -> str:
     return datetime.now(TIMEZONE).isoformat()
 
@@ -240,11 +182,10 @@ async def mood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     store: UserStore = context.application.bot_data["store"]
-    service: MotivationService = context.application.bot_data["motivation"]
     store.upsert(update.effective_chat.id, active=True, last_mood=mood_key, last_seen=now_iso())
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
     try:
-        message = await service.generate(mood)
+        message = generate_quote(LOCAL_MOOD_KEYS[mood_key])
         await query.edit_message_text(
             f"“{mood}” uchun sizga:\n\n{message}",
             reply_markup=InlineKeyboardMarkup(
@@ -260,7 +201,6 @@ async def mood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 async def daily_broadcast(application: Application) -> None:
     store: UserStore = application.bot_data["store"]
-    service: MotivationService = application.bot_data["motivation"]
     users = store.active_users()
     logger.info("Starting daily broadcast to %d users", len(users))
     for user in users:
@@ -268,11 +208,7 @@ async def daily_broadcast(application: Application) -> None:
         mood_key = user.get("last_mood") or random.choice(list(MOODS))
         mood = MOODS[mood_key]
         try:
-            message = await service.generate(
-                mood,
-                f"Bu kundalik xabar {now_iso()[:10]} sanasida yuborilmoqda; avvalgi xabarlardan "
-                "farqli, yangi mazmun yarating.",
-            )
+            message = generate_quote(LOCAL_MOOD_KEYS[mood_key])
             await application.bot.send_message(
                 chat_id=chat_id,
                 text=f"Assalomu alaykum! Bugungi ilhom:\n\n{message}",
@@ -295,12 +231,8 @@ def build_application() -> Application:
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN secret is not configured")
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise RuntimeError("ANTHROPIC_API_KEY secret is not configured")
-
     application = ApplicationBuilder().token(token).build()
     application.bot_data["store"] = UserStore(DATA_FILE)
-    application.bot_data["motivation"] = MotivationService()
     scheduler = AsyncIOScheduler(timezone=TIMEZONE)
     application.bot_data["scheduler"] = scheduler
     scheduler.add_job(

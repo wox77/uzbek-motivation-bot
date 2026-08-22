@@ -11,7 +11,7 @@ Telegram bot that generates Uzbek motivational messages for selected moods and b
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 - `python main.py` — run the Telegram bot
-- Required secrets: `TELEGRAM_BOT_TOKEN`, `ANTHROPIC_API_KEY`
+- Required secret: `TELEGRAM_BOT_TOKEN`
 
 ## Stack
 
@@ -24,13 +24,14 @@ Telegram bot that generates Uzbek motivational messages for selected moods and b
 
 ## Where things live
 
-- `main.py` — Telegram handlers, Claude generation, scheduler, and JSON storage
+- `main.py` — Telegram handlers, local quote generation, scheduler, and JSON storage
+- `local_quotes.py` — offline Uzbek quote combinations for every mood
 - `data/users.json` — runtime user records (created automatically and ignored by git)
 - `README.md` — setup and command reference
 
 ## Architecture decisions
 
-- Anthropic's async Python SDK is used with `claude-sonnet-4-6` for unique messages.
+- The offline `local_quotes.py` generator creates unique messages without AI or internet access.
 - APScheduler's `AsyncIOScheduler` runs in the Telegram application's event loop.
 - User records are stored in an atomically replaced JSON file to avoid partial writes.
 - Default scheduling timezone is `Asia/Tashkent`, configurable via `BOT_TIMEZONE`.
@@ -45,7 +46,7 @@ Messages are in Uzbek and should be warm, concise, unique, and related to the se
 
 ## Gotchas
 
-- Never put `TELEGRAM_BOT_TOKEN` or `ANTHROPIC_API_KEY` in source files.
+- Never put `TELEGRAM_BOT_TOKEN` in source files.
 - Run the bot as a long-lived process; APScheduler broadcasts only while the process is running.
 
 ## Pointers

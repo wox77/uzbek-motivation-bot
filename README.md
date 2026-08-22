@@ -1,14 +1,14 @@
 # Uzbek Motivation Telegram Bot
 
 Telegram bot that sends original daily motivational messages in Uzbek. Users
-choose one of 12 moods from an inline keyboard, and Anthropic Claude generates
-a fresh message for that mood. Active users receive a daily message at 07:00
-in the `Asia/Tashkent` timezone by default.
+choose one of 12 moods from an inline keyboard, and the offline local quote
+generator creates a fresh combination for that mood. Active users receive a
+daily message at 07:00 in the `Asia/Tashkent` timezone by default.
 
 ## Run
 
-The project uses the secure Replit Secrets `TELEGRAM_BOT_TOKEN` and
-`ANTHROPIC_API_KEY`. Start the bot with:
+The project uses the secure Replit Secret `TELEGRAM_BOT_TOKEN`. Start the bot
+with:
 
 ```bash
 python main.py
