@@ -1,0 +1,1 @@
+- [Telegram bot logging](telegram-bot-logging.md) — keep transport logs quiet so Bot API URLs cannot expose the token.
