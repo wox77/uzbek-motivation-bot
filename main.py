@@ -42,18 +42,18 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 TIMEZONE = ZoneInfo(os.getenv("BOT_TIMEZONE", "Asia/Tashkent"))
 DATA_FILE = Path(os.getenv("USERS_FILE", "data/users.json"))
 MOODS: dict[str, str] = {
-    "umidsizlik": "umidsizlik",
-    "tanhalilik": "tanhalilik",
-    "xavfxona": "xavfxona",
-    "charchalik": "charchalik",
-    "ayblanish": "ayblanish",
-    "xushyaliq": "xushyaliq",
-    "muvaffaqiyat": "gʻoyat muvaffaqiyat",
-    "stres": "stres",
-    "murakkab": "oʻziga nisbatan murakkab",
-    "gazab": "gʻazab",
-    "kelajak": "kelajak",
-    "sevgi": "sevgi",
+    "umidsizlik": "Umidsizlik 🙁",
+    "tanhalilik": "Yolg'izlik 😶",
+    "xavfxona": "Xavotir 😰",
+    "charchalik": "Charchoq 😩",
+    "ayblanish": "Aybdorlik 😔",
+    "xushyaliq": "Xushkayfiyat 😊",
+    "muvaffaqiyat": "Muvaffaqiyat 🏆",
+    "stres": "Stress 🤯",
+    "murakkab": "O'ziga ishonchsizlik 🪞",
+    "gazab": "G'azab 😡",
+    "kelajak": "Kelajak ✨",
+    "sevgi": "Sevgi ❤️",
 }
 
 LOCAL_MOOD_KEYS = {
@@ -127,11 +127,11 @@ class UserStore:
 
 def main_keyboard() -> InlineKeyboardMarkup:
     content_buttons = [
-        InlineKeyboardButton(emoji + " " + label, callback_data=f"content:{key}")
-        for key, (emoji, label, _) in [
-            ("iqtibos", ("📜", "Iqtibos", get_random_iqtibos)),
-            ("hazil", ("😂", "Kundalik hazil", get_random_hazil)),
-            ("sheriy", ("💔", "She'riy satr", get_random_sheriy)),
+        InlineKeyboardButton(label, callback_data=f"content:{key}")
+        for key, label in [
+            ("iqtibos", "Цитата 📜"),
+            ("hazil", "Kundalik hazil 😂"),
+            ("sheriy", "She'r ✍️"),
         ]
     ]
     buttons = [
@@ -148,7 +148,7 @@ def menu_text() -> str:
     return (
         "Bugun qalbingizga qaysi mavzuda dalda kerak?\n\n"
         "Kayfiyatingizni tanlang yoki quyidagilardan birini oling:\n"
-        "📜 Iqtibos · 😂 Kundalik hazil · 💔 She'riy satr"
+        "Цитата 📜 · Kundalik hazil 😂 · She'r ✍️"
     )
 
 
@@ -205,7 +205,7 @@ async def content_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await query.edit_message_text(
             f"{emoji} {generator()}",
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("Bosh menyu", callback_data="menu")]]
+                [[InlineKeyboardButton("Bosh menyu 🏠", callback_data="menu")]]
             ),
         )
     except Exception:
@@ -234,7 +234,7 @@ async def mood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await query.edit_message_text(
             f"“{mood}” uchun sizga:\n\n{message}",
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("Boshqa kayfiyatni tanlash", callback_data="menu")]]
+                [[InlineKeyboardButton("Boshqa kayfiyatni tanlash 🔄", callback_data="menu")]]
             ),
         )
     except Exception:
