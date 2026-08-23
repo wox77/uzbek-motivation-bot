@@ -1,7 +1,7 @@
 """Daily Uzbek motivation Telegram bot.
 
 Required secret:
-    TELEGRAM_BOT_TOKEN  - token from @BotFather
+    TELEGRAMTOKEN  - token from @BotFather
 """
 
 from __future__ import annotations
@@ -284,9 +284,9 @@ async def on_error(update: object, context: CallbackContext[Any, Any, Any, Any])
 
 
 def build_application() -> Application:
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    token = os.environ.get("TELEGRAMTOKEN")
     if not token:
-        raise RuntimeError("TELEGRAM_BOT_TOKEN secret is not configured")
+        raise RuntimeError("TELEGRAMTOKEN secret is not configured")
     application = ApplicationBuilder().token(token).build()
     application.bot_data["store"] = UserStore(DATA_FILE)
     scheduler = AsyncIOScheduler(timezone=TIMEZONE)
