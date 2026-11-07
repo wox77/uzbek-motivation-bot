@@ -1,3 +1,4 @@
 - [Telegram bot logging](telegram-bot-logging.md) — keep transport logs quiet so Bot API URLs cannot expose the token.
 - [Anthropic credit fallback](anthropic-credit-fallback.md) — preserve the bot flow with local Uzbek content when API credits are exhausted.
 - [GitHub push fallback](github-push-fallback.md) — when git HTTPS authentication is unavailable, use the attached GitHub integration to update the branch through Git data APIs.
+- [Python Telegram dependency](python-telegram-dependency.md) — keep the `telegram` import namespace owned by `python-telegram-bot`, not the unrelated PyPI `telegram` package.

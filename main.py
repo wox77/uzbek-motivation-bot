@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from extended_content import get_random_hazil, get_random_iqtibos, get_random_sheriy
+from gemini_content import generate_gemini_content
 from local_quotes import generate_quote
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
@@ -202,8 +203,16 @@ async def content_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     emoji, generator = option
     try:
         await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+        try:
+            message = await generate_gemini_content(content_key)
+        except Exception as error:
+            logger.warning(
+                "Gemini content generation failed (%s); using local content",
+                type(error).__name__,
+            )
+            message = generator()
         await query.edit_message_text(
-            f"{emoji} {generator()}",
+            f"{emoji} {message}",
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("Bosh menyu 🏠", callback_data="menu")]]
             ),
@@ -230,7 +239,14 @@ async def mood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     store.upsert(update.effective_chat.id, active=True, last_mood=mood_key, last_seen=now_iso())
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
     try:
-        message = generate_quote(LOCAL_MOOD_KEYS[mood_key])
+        try:
+            message = await generate_gemini_content("mood", mood=mood)
+        except Exception as error:
+            logger.warning(
+                "Gemini mood generation failed (%s); using local content",
+                type(error).__name__,
+            )
+            message = generate_quote(LOCAL_MOOD_KEYS[mood_key])
         await query.edit_message_text(
             f"“{mood}” uchun sizga:\n\n{message}",
             reply_markup=InlineKeyboardMarkup(
@@ -254,15 +270,21 @@ async def daily_broadcast(application: Application) -> None:
         previous_type = user.get("last_content_type")
         content_types = [key for key in CONTENT_OPTIONS if key != previous_type]
         try:
-            message = ""
-            content_key = content_types[0]
-            emoji = CONTENT_OPTIONS[content_key][0]
-            for _ in range(6):
-                content_key = random.choice(content_types)
-                emoji, generator = CONTENT_OPTIONS[content_key]
+            content_key = random.choice(content_types)
+            emoji, generator = CONTENT_OPTIONS[content_key]
+            try:
+                message = await generate_gemini_content(content_key)
+            except Exception as error:
+                logger.warning(
+                    "Gemini broadcast generation failed (%s); using local content",
+                    type(error).__name__,
+                )
                 message = generator()
-                if message not in used_messages:
-                    break
+            if message in used_messages:
+                for _ in range(6):
+                    message = generator()
+                    if message not in used_messages:
+                        break
             used_messages.add(message)
             store.upsert(chat_id, last_content_type=content_key, last_daily_date=now_iso()[:10])
             await application.bot.send_message(
@@ -304,6 +326,8 @@ def build_application() -> Application:
 
     async def post_init(_: Application) -> None:
         scheduler.start()
+        if not os.getenv("GEMINI_API_KEY"):
+            logger.warning("GEMINI_API_KEY is missing; local content fallback is active")
         try:
             await application.bot.set_my_description(
                 "Har kuni ertalab noyob kontent - iqtibos, hazil yoki she'riy satrlar"

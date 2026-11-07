@@ -11,7 +11,8 @@ Telegram bot that provides Uzbek motivational messages, quotes, daily humor, and
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 - `python main.py` — run the Telegram bot
-- Required secret: `TELEGRAM_BOT_TOKEN`
+- Required secret: `TELEGRAMTOKEN`
+- Optional secret: `GEMINI_API_KEY` (Gemini content generation; local Uzbek content is used if unavailable)
 
 ## Stack
 
@@ -24,7 +25,8 @@ Telegram bot that provides Uzbek motivational messages, quotes, daily humor, and
 
 ## Where things live
 
-- `main.py` — Telegram handlers, local quote generation, scheduler, and JSON storage
+- `main.py` — Telegram handlers, Gemini/local content routing, scheduler, and JSON storage
+- `gemini_content.py` — bounded, retrying Gemini text generation for Uzbek bot content
 - `local_quotes.py` — offline Uzbek quote combinations for every mood
 - `extended_content.py` — offline quote, humor, and poetic-line content bank
 - `data/users.json` — runtime user records (created automatically and ignored by git)
@@ -32,7 +34,8 @@ Telegram bot that provides Uzbek motivational messages, quotes, daily humor, and
 
 ## Architecture decisions
 
-- The offline `local_quotes.py` generator creates unique messages without AI or internet access.
+- Gemini generates mood replies, quotes, humor, poetry, and daily broadcasts; local Uzbek content is the fallback when the API is unavailable.
+- Gemini API usage is billed by Google separately from consumer Gemini subscriptions; keep API usage and billing limits in mind.
 - APScheduler's `AsyncIOScheduler` runs in the Telegram application's event loop.
 - User records are stored in an atomically replaced JSON file to avoid partial writes.
 - Default scheduling timezone is `Asia/Tashkent`, configurable via `BOT_TIMEZONE`.
@@ -48,7 +51,7 @@ Messages are in Uzbek and should be warm, concise, unique, and related to the se
 
 ## Gotchas
 
-- Never put `TELEGRAM_BOT_TOKEN` in source files.
+- Never put bot tokens or API keys in source files or logs.
 - Run the bot as a long-lived process; APScheduler broadcasts only while the process is running.
 
 ## Pointers
