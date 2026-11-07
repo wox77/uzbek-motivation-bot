@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from functools import lru_cache
 
 from google import genai
@@ -14,6 +15,16 @@ logger = logging.getLogger("uzbek-motivation-bot.gemini")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 _REQUEST_LIMITER = asyncio.Semaphore(2)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+_MAX_CHARS = {
+    "mood": 360,
+    "iqtibos": 180,
+    "hazil": 180,
+    "sheriy": 300,
+}
+
+
+class InvalidGeneratedContent(ValueError):
+    """Raised when Gemini ignores the requested content format."""
 
 
 @lru_cache(maxsize=1)
@@ -30,42 +41,65 @@ def _client() -> genai.Client:
 def _prompt(content_type: str, mood: str | None) -> str:
     rules = (
         "Write in simple, natural Uzbek using Latin script. Make the text original, "
-        "clear, warm, calming, and hopeful, so the reader feels understood and more "
-        "confident. Draw inspiration from broad, widely known ideas associated with "
-        "respected thinkers, scientists, psychologists, and well-known books, then "
-        "express those ideas in your own words. Never copy or closely paraphrase a "
-        "specific passage. Do not invent quotations, authors, sources, research, or "
-        "scientific claims, and do not attribute generated text to a real person or "
-        "book. Avoid forced positivity or dismissing difficult feelings. Return only "
-        "the finished text, without a title, explanation, or markdown."
+        "clear, and respectful. Follow the requested content type exactly; do not "
+        "combine it with another type. Where relevant, draw on broad, widely known "
+        "ideas associated with respected thinkers, scientists, psychologists, and "
+        "well-known books, expressed in your own words. Never copy or closely "
+        "paraphrase a specific passage. Do not invent quotations, authors, sources, "
+        "research, or scientific claims, and do not attribute generated text to a real "
+        "person or book. Avoid forced positivity or dismissing difficult feelings. "
+        "Return only the finished text, without a title, explanation, or markdown."
     )
     if content_type == "mood":
         if not mood:
             raise ValueError("A mood is required for mood content")
         return (
-            f"{rules}\n\nWrite 2 or 3 supportive sentences for a person feeling: {mood}. "
+            f"{rules}\n\nWrite exactly 2 or 3 short supportive sentences for a person "
+            f"feeling: {mood}. Keep the response under 360 characters. "
             "Acknowledge the feeling without minimizing it, offer one gentle practical "
-            "thought, and avoid diagnoses or promises."
+            "thought, and avoid diagnoses or promises. Do not add a joke or a second topic."
         )
     if content_type == "iqtibos":
         return (
-            f"{rules}\n\nWrite one short, memorable original motivational thought. "
-            "Do not include an author or source."
+            f"{rules}\n\nWrite one short, memorable original motivational thought in "
+            "one sentence, under 180 characters. Do not include an author or source."
         )
     if content_type == "hazil":
         return (
-            f"{rules}\n\nWrite one brief, friendly everyday joke in Uzbek. Keep it "
-            "light and kind; do not mock a person or group."
+            f"{rules}\n\nWrite only one brief, friendly everyday joke in Uzbek, in one "
+            "or two short sentences and under 180 characters. Do not add advice, "
+            "motivation, emotional support, a second topic, or a separate paragraph. "
+            "Keep it light and kind; do not mock a person or group."
         )
     if content_type == "sheriy":
         return (
-            f"{rules}\n\nWrite an original short Uzbek poem of 4 to 6 lines. "
-            "Do not imitate a known poet or quote existing lyrics."
+            f"{rules}\n\nWrite only an original short Uzbek poem of 4 to 6 lines, "
+            "under 300 characters total. Do not add prose before or after it, imitate "
+            "a known poet, or quote existing lyrics."
         )
     raise ValueError(f"Unsupported Gemini content type: {content_type}")
 
 
-def _generate_once(prompt: str) -> str:
+def _validate_output(content_type: str, text: str) -> None:
+    if len(text) > _MAX_CHARS[content_type]:
+        raise InvalidGeneratedContent("Gemini response exceeded the requested length")
+
+    sentence_count = len(re.findall(r"[.!?]+(?=\s|$)", text))
+    if content_type == "mood" and not 2 <= sentence_count <= 3:
+        raise InvalidGeneratedContent("Mood response must contain 2 or 3 sentences")
+    if content_type == "iqtibos" and sentence_count > 1:
+        raise InvalidGeneratedContent("Quote response must contain one sentence")
+    if content_type == "hazil" and (
+        sentence_count > 2 or "\n\n" in text
+    ):
+        raise InvalidGeneratedContent("Humor response must be one short joke")
+    if content_type == "sheriy":
+        line_count = len([line for line in text.splitlines() if line.strip()])
+        if not 4 <= line_count <= 6:
+            raise InvalidGeneratedContent("Poem response must contain 4 to 6 lines")
+
+
+def _generate_once(prompt: str, content_type: str) -> str:
     response = _client().models.generate_content(
         model=MODEL,
         contents=prompt,
@@ -79,6 +113,7 @@ def _generate_once(prompt: str) -> str:
         raise RuntimeError("Gemini returned an empty response")
     if len(text) > 3000:
         text = text[:2997].rsplit(" ", 1)[0].rstrip() + "..."
+    _validate_output(content_type, text)
     return text
 
 
@@ -91,11 +126,15 @@ async def generate_gemini_content(
     async with _REQUEST_LIMITER:
         for attempt in range(2):
             try:
-                return await asyncio.to_thread(_generate_once, prompt)
+                return await asyncio.to_thread(_generate_once, prompt, content_type)
             except Exception as error:
                 status_code = getattr(error, "code", None)
                 retryable = (
-                    status_code is None or status_code in _RETRYABLE_STATUS_CODES
+                    not isinstance(error, InvalidGeneratedContent)
+                    and (
+                        status_code is None
+                        or status_code in _RETRYABLE_STATUS_CODES
+                    )
                 )
                 if not retryable or attempt == 1:
                     raise

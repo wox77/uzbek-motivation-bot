@@ -47,7 +47,7 @@ The bot profile describes its daily unique quote, humor, or poetic-line content.
 
 ## User preferences
 
-Messages should use simple Uzbek Latin, feel warm, calming, and hopeful, and strengthen confidence without forced positivity. They may draw on broad ideas associated with respected thinkers, scientists, psychologists, and well-known books, but must be original, not copied or closely paraphrased, and must not invent attributions or scientific claims.
+Messages should use simple Uzbek Latin, feel warm and hopeful without forced positivity, and follow the selected content type. Humor should be only a short joke, without an added motivational paragraph. Messages may draw on broad ideas associated with respected thinkers, scientists, psychologists, and well-known books, but must be original, not copied or closely paraphrased, and must not invent attributions or scientific claims.
 
 ## Gotchas
 
