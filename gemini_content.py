@@ -29,10 +29,15 @@ def _client() -> genai.Client:
 
 def _prompt(content_type: str, mood: str | None) -> str:
     rules = (
-        "Write in natural Uzbek using Latin script. Return only the finished text, "
-        "without a title, explanation, markdown, or quotation marks. Keep it concise, "
-        "warm, respectful, and original. Do not invent famous authors or attribute "
-        "the text to a real person."
+        "Write in simple, natural Uzbek using Latin script. Make the text original, "
+        "clear, warm, calming, and hopeful, so the reader feels understood and more "
+        "confident. Draw inspiration from broad, widely known ideas associated with "
+        "respected thinkers, scientists, psychologists, and well-known books, then "
+        "express those ideas in your own words. Never copy or closely paraphrase a "
+        "specific passage. Do not invent quotations, authors, sources, research, or "
+        "scientific claims, and do not attribute generated text to a real person or "
+        "book. Avoid forced positivity or dismissing difficult feelings. Return only "
+        "the finished text, without a title, explanation, or markdown."
     )
     if content_type == "mood":
         if not mood:
@@ -44,8 +49,8 @@ def _prompt(content_type: str, mood: str | None) -> str:
         )
     if content_type == "iqtibos":
         return (
-            f"{rules}\n\nWrite one short, memorable original Uzbek motivational quote. "
-            "Do not include an author."
+            f"{rules}\n\nWrite one short, memorable original motivational thought. "
+            "Do not include an author or source."
         )
     if content_type == "hazil":
         return (
