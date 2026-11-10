@@ -17,7 +17,13 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from extended_content import get_random_hazil, get_random_iqtibos, get_random_sheriy
+from extended_content import (
+    format_iqtibos,
+    get_random_hazil,
+    get_random_iqtibos,
+    get_random_iqtibos_item,
+    get_random_sheriy,
+)
 from gemini_content import generate_gemini_content
 from local_quotes import generate_quote
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -153,6 +159,14 @@ def menu_text() -> str:
     )
 
 
+def content_keyboard(source_url: str | None = None) -> InlineKeyboardMarkup:
+    rows = []
+    if source_url:
+        rows.append([InlineKeyboardButton("Asl manbani ko‘rish ↗️", url=source_url)])
+    rows.append([InlineKeyboardButton("Bosh menyu 🏠", callback_data="menu")])
+    return InlineKeyboardMarkup(rows)
+
+
 def now_iso() -> str:
     return datetime.now(TIMEZONE).isoformat()
 
@@ -203,19 +217,23 @@ async def content_selected(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     emoji, generator = option
     try:
         await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
-        try:
-            message = await generate_gemini_content(content_key)
-        except Exception as error:
-            logger.warning(
-                "Gemini content generation failed (%s); using local content",
-                type(error).__name__,
-            )
-            message = generator()
+        source_url = None
+        if content_key == "iqtibos":
+            item = get_random_iqtibos_item()
+            message = format_iqtibos(item)
+            source_url = item["url"]
+        else:
+            try:
+                message = await generate_gemini_content(content_key)
+            except Exception as error:
+                logger.warning(
+                    "Gemini content generation failed (%s); using local content",
+                    type(error).__name__,
+                )
+                message = generator()
         await query.edit_message_text(
             f"{emoji} {message}",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("Bosh menyu 🏠", callback_data="menu")]]
-            ),
+            reply_markup=content_keyboard(source_url),
         )
     except Exception:
         logger.exception("Could not generate local content for chat %s", update.effective_chat.id)
@@ -264,6 +282,7 @@ async def daily_broadcast(application: Application) -> None:
     store: UserStore = application.bot_data["store"]
     users = store.active_users()
     used_messages: set[str] = set()
+    used_quote_texts: set[str] = set()
     logger.info("Starting daily broadcast to %d users", len(users))
     for user in users:
         chat_id = int(user["chat_id"])
@@ -272,15 +291,22 @@ async def daily_broadcast(application: Application) -> None:
         try:
             content_key = random.choice(content_types)
             emoji, generator = CONTENT_OPTIONS[content_key]
-            try:
-                message = await generate_gemini_content(content_key)
-            except Exception as error:
-                logger.warning(
-                    "Gemini broadcast generation failed (%s); using local content",
-                    type(error).__name__,
-                )
-                message = generator()
-            if message in used_messages:
+            source_url = None
+            if content_key == "iqtibos":
+                item = get_random_iqtibos_item(exclude_texts=used_quote_texts)
+                message = format_iqtibos(item)
+                source_url = item["url"]
+                used_quote_texts.add(item["matn"])
+            else:
+                try:
+                    message = await generate_gemini_content(content_key)
+                except Exception as error:
+                    logger.warning(
+                        "Gemini broadcast generation failed (%s); using local content",
+                        type(error).__name__,
+                    )
+                    message = generator()
+            if message in used_messages and content_key != "iqtibos":
                 for _ in range(6):
                     message = generator()
                     if message not in used_messages:
@@ -290,6 +316,7 @@ async def daily_broadcast(application: Application) -> None:
             await application.bot.send_message(
                 chat_id=chat_id,
                 text=f"Assalomu alaykum! Bugungi ilhom:\n\n{emoji} {message}",
+                reply_markup=content_keyboard(source_url) if source_url else None,
             )
         except Forbidden:
             logger.info("Chat %s blocked the bot; deactivating", chat_id)

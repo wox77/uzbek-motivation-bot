@@ -34,9 +34,11 @@ Optional environment variables:
 - `/mood` displays the mood keyboard again.
 - `/stop` pauses daily broadcasts for the user.
 
-The daily broadcast rotates between AI-generated quotes, humor, and poetic
-lines, and avoids repeating the same text within one broadcast when possible.
-Local content remains available as a fallback if the Gemini API is unavailable.
+The daily broadcast rotates between sourced quotes, AI-generated humor, and
+poetic lines, and avoids repeating the same text within one broadcast when
+possible. Quotes come only from a curated local collection; each includes its
+author, work, and a button to the source text. Gemini does not create quotes.
+Local humor and poetry remain available as fallbacks if Gemini is unavailable.
 
 User records are written atomically to `data/users.json`. If a user blocks the
 bot or their chat becomes unavailable, that user is automatically deactivated.

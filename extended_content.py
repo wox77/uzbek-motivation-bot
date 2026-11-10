@@ -8,39 +8,81 @@ ba'zan chuqur. Faqat motivatsiya emas - hayotiy, jonli matn.
 import random
 
 # ============================================================
-# 1) MASHHUR IQTIBOSLAR - muallifi bilan
+# 1) TEKSHIRILGAN IQTIBOSLAR - muallifi va manbasi bilan
 # ============================================================
 IQTIBOSLAR = [
-    {"matn": "Bilim - kuchdir.", "muallif": "Frensis Bekon"},
-    {"matn": "O'zingni bil.", "muallif": "Suqrot"},
-    {"matn": "Yashash uchun kurash - bu tabiatning qonuni.", "muallif": "Charlz Darvin"},
-    {"matn": "Vaqt - eng qimmatli boylik, chunki uni qaytarib bo'lmaydi.", "muallif": "Abu Ali ibn Sino"},
-    {"matn": "Ilm - go'zallikdir, uni izlagan hech qachon pushaymon bo'lmaydi.", "muallif": "Alisher Navoiy"},
-    {"matn": "Kishining qadri o'z himmati bilan o'lchanadi.", "muallif": "Alisher Navoiy"},
-    {"matn": "Do'stlik - ikki tan, bir jon.", "muallif": "Sharq hikmati"},
-    {"matn": "Sabr - achchiq, lekin mevasi shirin.", "muallif": "Sharq maqoli"},
-    {"matn": "Yaxshilik qil, daryoga tashla, baliq bilmasa, xoliq biladi.", "muallif": "O'zbek maqoli"},
-    {"matn": "Kim yurса, o'zi yetar maqsadga.", "muallif": "O'zbek maqoli"},
-    {"matn": "Yurak ko'zi bilan qaralgan narsa hech qachon yolg'on gapirmaydi.", "muallif": "Jaloliddin Rumiy"},
-    {"matn": "Yaralaring senga yorug'lik kiradigan joy bo'lsin.", "muallif": "Jaloliddin Rumiy"},
-    {"matn": "Kecha ketdi, ertasi hali yo'q, faqat bugun bor - uni yashagin.", "muallif": "Jaloliddin Rumiy"},
-    {"matn": "Sevgi - ikki jonning bir tanda yashashi.", "muallif": "Aristotel"},
-    {"matn": "Baxt - bu maqsad emas, yo'lning o'zi.", "muallif": "Kanfutsiy"},
-    {"matn": "Kim o'zini yengsa, eng katta g'alabani qozonadi.", "muallif": "Kanfutsiy"},
-    {"matn": "Hayot - bu sen band bo'lganingda boshqa rejalar tuzayotgan narsa.", "muallif": "Jon Lennon"},
-    {"matn": "Kutubxona - insoniyat qalbining davolanish joyi.", "muallif": "Qadimgi Misr yozuvi"},
-    {"matn": "Kim ko'p bilsa, kam gapiradi.", "muallif": "Sharq hikmati"},
-    {"matn": "Tinchlik - kuchlilarning ziynati.", "muallif": "Sharq maqoli"},
-    {"matn": "Insonning qadri - ilmi va odobi bilan bo'ladi, boyligi bilan emas.", "muallif": "Abu Rayhon Beruniy"},
-    {"matn": "Har bir kun - yangi hayotning boshlanishi.", "muallif": "Sharq hikmati"},
-    {"matn": "O'zgarish - hayotning yagona doimiy qonuni.", "muallif": "Geraklit"},
-    {"matn": "Kuchli bo'lish - yiqilmaslik emas, har safar qayta turishdir.", "muallif": "Konfutsiy"},
-    {"matn": "Muhabbat - ikki qalbning bitta orzu bilan yashashi.", "muallif": "Jubron Xalil Jubron"},
-    {"matn": "Ozodlik - qafasda tug'ilgan qushga osmonni orzu qilishdir.", "muallif": "Jubron Xalil Jubron"},
-    {"matn": "Dard chekmagan qalb hech qachon sevgini chuqur tushunmaydi.", "muallif": "Jubron Xalil Jubron"},
-    {"matn": "Yaxshi so'z - sadaqadir.", "muallif": "Hadis"},
-    {"matn": "Kim odamlarga rahm qilmasa, unga ham rahm qilinmaydi.", "muallif": "Hadis"},
-    {"matn": "Ilm Xitoyda bo'lsa ham boring, uni izlang.", "muallif": "Hadis"},
+    {
+        "matn": "Odamiy ersang, demagil odami, onikim yo‘q xalq g‘amidin g‘ami.",
+        "muallif": "Alisher Navoiy",
+        "manba": "Hayrat ul-abror",
+        "url": "https://kutubxonachi.uz/media/books/hayrat-ul-abror_kutubxonachi.uz.pdf",
+    },
+    {
+        "matn": "Yaxshi insonni ko‘rsang, unga tenglashishga intil; yomonini ko‘rsang, o‘zingni tekshir.",
+        "muallif": "Konfutsiy",
+        "manba": "Hikmatlar kitobi, 4:17",
+        "url": "https://www.analects.net/analects/4-li-ren/4-jian-xian/",
+    },
+    {
+        "matn": "O‘zingga ravo ko‘rmagan narsani boshqalarga ham ravo ko‘rma.",
+        "muallif": "Konfutsiy",
+        "manba": "Hikmatlar kitobi, 15:24",
+        "url": "https://www.analects.net/analects/15-wei-ling-gong/15-gong-wen",
+    },
+    {
+        "matn": "Ming li yo‘l ham oyoq ostingdan boshlanadi.",
+        "muallif": "Laozi",
+        "manba": "Dao De Jing, 64-bob",
+        "url": "https://laozi-taoteching.org/en/chapters/64",
+    },
+    {
+        "matn": "Aql to‘siqni yordamga aylantiradi; yo‘ldagi g‘ov ham shu yo‘lda olg‘a siljishga ko‘mak beradi.",
+        "muallif": "Mark Avreliy",
+        "manba": "O‘ylar, 5-kitob, 20-qism",
+        "url": "https://classics.mit.edu/Antoninus/meditations.5.five.html",
+    },
+    {
+        "matn": "Ba’zi narsalar bizning ixtiyorimizda, ba’zilari esa yo‘q. O‘z fikrimiz va harakatimiz ixtiyorimizdadir.",
+        "muallif": "Epiktet",
+        "manba": "Enxiridion, 1-qism",
+        "url": "https://classics.mit.edu/Epictetus/epicench.html",
+    },
+    {
+        "matn": "Bizni narsalarning o‘zi emas, ular haqidagi qarashlarimiz bezovta qiladi.",
+        "muallif": "Epiktet",
+        "manba": "Enxiridion, 5-qism",
+        "url": "https://classics.mit.edu/Epictetus/epicench.html",
+    },
+    {
+        "matn": "Ko‘pincha biz haqiqatda emas, tasavvurimizda ko‘proq azob chekamiz.",
+        "muallif": "Seneka",
+        "manba": "Lutsiliyga maktublar, 13-maktub, 4-qism",
+        "url": "https://thestoiclibrary.com/letters/13#section-4",
+    },
+    {
+        "matn": "Yaxshi-yomon degan narsa yo‘q, uni fikrimiz shunday qiladi.",
+        "muallif": "Uilyam Shekspir",
+        "manba": "Hamlet, 2-parda, 2-sahna",
+        "url": "https://www.folger.edu/explore/shakespeares-works/hamlet/read/2/2",
+    },
+    {
+        "matn": "Ayb yulduzlarda emas, o‘zimizda.",
+        "muallif": "Uilyam Shekspir",
+        "manba": "Yuliy Sezar, 1-parda, 2-sahna",
+        "url": "https://www.folger.edu/explore/shakespeares-works/julius-caesar/read/1/2",
+    },
+    {
+        "matn": "Hayot hech birimiz uchun oson emas. Xo‘sh, nima bo‘pti? Matonat va eng avvalo, o‘zimizga ishonch kerak. Bizda bir iste’dod borligiga, unga erishishimiz kerakligiga ishonishimiz lozim.",
+        "muallif": "Mari Kyuri",
+        "manba": "“Marie Curie: In her own words”",
+        "url": "https://www.mariecurie.org.uk/about-us/our-history/marie-curie-the-scientist",
+    },
+    {
+        "matn": "Darding — tushunchangni o‘rab turgan qobiqning yorilishidir.",
+        "muallif": "Xalil Jubron",
+        "manba": "Payg‘ambar, “Dard haqida”",
+        "url": "https://www.gutenberg.org/files/58585/58585-h/58585-h.htm#link60",
+    },
 ]
 
 # ============================================================
@@ -96,10 +138,21 @@ SHERIY_SATRLAR = [
 # 4) FUNKSIYALAR
 # ============================================================
 
+def get_random_iqtibos_item(exclude_texts=None):
+    """Manbasi ko‘rsatilgan tasodifiy iqtibos yozuvini qaytaradi."""
+    excluded = set(exclude_texts or ())
+    available = [item for item in IQTIBOSLAR if item["matn"] not in excluded]
+    return random.choice(available or IQTIBOSLAR)
+
+
+def format_iqtibos(item):
+    """Iqtibosni muallif va asar nomi bilan ko‘rsatadi."""
+    return f'“{item["matn"]}”\n\n— {item["muallif"]}\n📚 {item["manba"]}'
+
+
 def get_random_iqtibos():
-    """Tasodifiy iqtibos + muallif"""
-    item = random.choice(IQTIBOSLAR)
-    return f'"{item["matn"]}"\n\n— {item["muallif"]}'
+    """Tasodifiy iqtibosni muallif va manbasi bilan qaytaradi."""
+    return format_iqtibos(get_random_iqtibos_item())
 
 
 def get_random_hazil():

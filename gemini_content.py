@@ -17,7 +17,6 @@ _REQUEST_LIMITER = asyncio.Semaphore(2)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _MAX_CHARS = {
     "mood": 360,
-    "iqtibos": 180,
     "hazil": 180,
     "sheriy": 300,
 }
@@ -58,11 +57,6 @@ def _prompt(content_type: str, mood: str | None) -> str:
             f"feeling: {mood}. Keep the response under 360 characters. "
             "Acknowledge the feeling without minimizing it, offer one gentle practical "
             "thought, and avoid diagnoses or promises. Do not add a joke or a second topic."
-        )
-    if content_type == "iqtibos":
-        return (
-            f"{rules}\n\nWrite one short, memorable original motivational thought in "
-            "one sentence, under 180 characters. Do not include an author or source."
         )
     if content_type == "hazil":
         return (
